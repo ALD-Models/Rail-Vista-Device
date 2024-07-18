@@ -19,12 +19,21 @@
             height: 100%;
             object-fit: cover;
         }
+        #error-message {
+            color: red;
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body>
 
 <video id="video" autoplay playsinline></video>
-<div id="error-message" style="color: red; position: absolute; top: 10px; left: 10px;"></div>
+<div id="error-message"></div>
 
 <script>
     function hasGetUserMedia() {
