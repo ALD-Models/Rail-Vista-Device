@@ -2,123 +2,61 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Camera Streaming with Firebase Storage</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Camera Feed</title>
     <style>
-        body {
+        /* Make the video element full screen */
+        body, html {
             margin: 0;
+            padding: 0;
+            height: 100%;
             overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #000;
         }
         video {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
-        #error-message {
-            color: red;
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background-color: rgba(0, 0, 0, 0.5);
-            padding: 10px;
-            border-radius: 5px;
-        }
     </style>
 </head>
 <body>
+    <video id="video" autoplay playsinline></video>
 
-<video id="video" autoplay playsinline controls muted disablePictureInPicture></video>
-<div id="error-message"></div>
+    <script>
+        async function startCamera() {
+            try {
+                const constraints = {
+                    video: {
+                        facingMode: 'environment', // Use the rear camera
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                };
 
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.0.2/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.0.2/firebase-storage.js"></script>
+                // Access the user's camera
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                const videoElement = document.getElementById('video');
 
-<script>
-    // Your web app's Firebase configuration
-    const firebaseConfig = {
-        apiKey: "AIzaSyAsw6vJKiZ7ytFgz0F1AsnSCzC1awh1kwc",
-        authDomain: "rail-vista-4f089.firebaseapp.com",
-        projectId: "rail-vista-4f089",
-        storageBucket: "rail-vista-4f089.appspot.com",
-        messagingSenderId: "801269525761",
-        appId: "1:801269525761:web:da422ee6aadcf117433f00"
-    };
+                // Set the video source to the camera stream
+                videoElement.srcObject = stream;
 
-    // Initialize Firebase
-    const app = firebase.initializeApp(firebaseConfig);
-
-    function hasGetUserMedia() {
-        return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
-    }
-
-    function startVideo() {
-        const video = document.getElementById('video');
-        const errorMessage = document.getElementById('error-message');
-
-        if (hasGetUserMedia()) {
-            const constraints = {
-                video: {
-                    facingMode: { exact: 'environment' }, // Use rear camera
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 }
+                // Optional: Lock the zoom if supported (not guaranteed to work)
+                const track = stream.getVideoTracks()[0];
+                if (track) {
+                    const capabilities = track.getCapabilities();
+                    if (capabilities.zoom) {
+                        // Attempt to set zoom level (example: 1x zoom)
+                        track.applyConstraints({ advanced: [{ zoom: 1 }] });
+                    }
                 }
-            };
 
-            navigator.mediaDevices.getUserMedia(constraints)
-                .then(function(stream) {
-                    video.srcObject = stream;
-                    video.setAttribute('playsinline', true); // iOS specific attribute to play inline
-                    video.addEventListener('loadedmetadata', function() {
-                        video.play();
-                        startRecording(stream); // Start recording the video stream
-                    });
-                })
-                .catch(function(error) {
-                    console.error('Error accessing the camera:', error);
-                    errorMessage.textContent = `Error accessing the camera: ${error.message}`;
-                });
-        } else {
-            errorMessage.textContent = 'getUserMedia() is not supported by your browser';
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+            }
         }
-    }
 
-    function startRecording(stream) {
-        const mediaRecorder = new MediaRecorder(stream);
-        const chunks = [];
-
-        mediaRecorder.ondataavailable = function(e) {
-            chunks.push(e.data);
-        };
-
-        mediaRecorder.onstop = function() {
-            const blob = new Blob(chunks, { type: 'video/webm' });
-            uploadToFirebase(blob); // Upload chunks to Firebase Storage
-        };
-
-        // Start recording
-        mediaRecorder.start();
-    }
-
-    function uploadToFirebase(blob) {
-        const storageRef = firebase.storage().ref();
-        const videoRef = storageRef.child('recorded-video-' + Date.now() + '.webm');
-
-        videoRef.put(blob).then(function(snapshot) {
-            console.log('Uploaded a blob to Firebase Storage!');
-            // Optionally, update Firebase Realtime Database or Firestore with metadata or signaling
-        }).catch(function(error) {
-            console.error('Error uploading to Firebase Storage:', error);
-        });
-    }
-
-    document.addEventListener('DOMContentLoaded', startVideo);
-</script>
-
+        // Start the camera when the page loads
+        window.addEventListener('load', startCamera);
+    </script>
 </body>
 </html>
