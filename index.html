@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Camera Access</title>
+    <title>Camera Streaming with Firebase Storage</title>
     <style>
         body {
             margin: 0;
@@ -32,10 +32,27 @@
 </head>
 <body>
 
-<video id="video" autoplay playsinline></video>
+<video id="video" autoplay playsinline controls muted disablePictureInPicture></video>
 <div id="error-message"></div>
 
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.0.2/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.0.2/firebase-storage.js"></script>
+
 <script>
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyAsw6vJKiZ7ytFgz0F1AsnSCzC1awh1kwc",
+        authDomain: "rail-vista-4f089.firebaseapp.com",
+        projectId: "rail-vista-4f089",
+        storageBucket: "rail-vista-4f089.appspot.com",
+        messagingSenderId: "801269525761",
+        appId: "1:801269525761:web:da422ee6aadcf117433f00"
+    };
+
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+
     function hasGetUserMedia() {
         return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
     }
@@ -57,11 +74,9 @@
                 .then(function(stream) {
                     video.srcObject = stream;
                     video.setAttribute('playsinline', true); // iOS specific attribute to play inline
-                    video.setAttribute('controls', true); // Show video controls
-                    video.setAttribute('muted', true); // Mute the video to prevent feedback
-                    video.setAttribute('disablePictureInPicture', true); // Disable Picture-in-Picture mode
                     video.addEventListener('loadedmetadata', function() {
                         video.play();
+                        startRecording(stream); // Start recording the video stream
                     });
                 })
                 .catch(function(error) {
@@ -71,6 +86,35 @@
         } else {
             errorMessage.textContent = 'getUserMedia() is not supported by your browser';
         }
+    }
+
+    function startRecording(stream) {
+        const mediaRecorder = new MediaRecorder(stream);
+        const chunks = [];
+
+        mediaRecorder.ondataavailable = function(e) {
+            chunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = function() {
+            const blob = new Blob(chunks, { type: 'video/webm' });
+            uploadToFirebase(blob); // Upload chunks to Firebase Storage
+        };
+
+        // Start recording
+        mediaRecorder.start();
+    }
+
+    function uploadToFirebase(blob) {
+        const storageRef = firebase.storage().ref();
+        const videoRef = storageRef.child('recorded-video-' + Date.now() + '.webm');
+
+        videoRef.put(blob).then(function(snapshot) {
+            console.log('Uploaded a blob to Firebase Storage!');
+            // Optionally, update Firebase Realtime Database or Firestore with metadata or signaling
+        }).catch(function(error) {
+            console.error('Error uploading to Firebase Storage:', error);
+        });
     }
 
     document.addEventListener('DOMContentLoaded', startVideo);
