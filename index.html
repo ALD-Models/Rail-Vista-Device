@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Live Camera Feed</title>
     <style>
-        /* Make the video element full screen */
         body, html {
             margin: 0;
             padding: 0;
@@ -18,44 +17,71 @@
             object-fit: cover;
         }
     </style>
+    <!-- Firebase App (the core Firebase SDK) is always required and must be listed first -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js"></script>
+    <!-- Add Firebase products that you want to use -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-storage.js"></script>
 </head>
 <body>
     <video id="video" autoplay playsinline></video>
 
     <script>
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAsw6vJKiZ7ytFgz0F1AsnSCzC1awh1kwc",
+            authDomain: "rail-vista-4f089.firebaseapp.com",
+            projectId: "rail-vista-4f089",
+            storageBucket: "rail-vista-4f089.appspot.com",
+            messagingSenderId: "801269525761",
+            appId: "1:801269525761:web:da422ee6aadcf117433f00"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const storage = firebase.storage();
+
         async function startCamera() {
             try {
                 const constraints = {
                     video: {
-                        facingMode: 'environment', // Use the rear camera
+                        facingMode: 'environment',
                         width: { ideal: 1280 },
                         height: { ideal: 720 }
                     }
                 };
 
-                // Access the user's camera
                 const stream = await navigator.mediaDevices.getUserMedia(constraints);
                 const videoElement = document.getElementById('video');
-
-                // Set the video source to the camera stream
                 videoElement.srcObject = stream;
 
-                // Optional: Lock the zoom if supported (not guaranteed to work)
-                const track = stream.getVideoTracks()[0];
-                if (track) {
-                    const capabilities = track.getCapabilities();
-                    if (capabilities.zoom) {
-                        // Attempt to set zoom level (example: 1x zoom)
-                        track.applyConstraints({ advanced: [{ zoom: 1 }] });
-                    }
-                }
+                // Start recording and uploading segments
+                startRecording(stream);
 
             } catch (error) {
                 console.error('Error accessing camera:', error);
             }
         }
 
-        // Start the camera when the page loads
+        function startRecording(stream) {
+            const mediaRecorder = new MediaRecorder(stream);
+            let chunkCounter = 0;
+
+            mediaRecorder.ondataavailable = async (event) => {
+                if (event.data.size > 0) {
+                    const storageRef = storage.ref(`videos/segment_${chunkCounter}.webm`);
+                    await storageRef.put(event.data);
+                    chunkCounter++;
+                }
+            };
+
+            mediaRecorder.start(10000); // Record in 10 second intervals
+
+            // Optionally, handle stopping the recording
+            window.addEventListener('beforeunload', () => {
+                mediaRecorder.stop();
+            });
+        }
+
         window.addEventListener('load', startCamera);
     </script>
 </body>
