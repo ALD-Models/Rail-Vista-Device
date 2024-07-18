@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Camera Access</title>
     <style>
         body {
@@ -45,9 +45,24 @@
         const errorMessage = document.getElementById('error-message');
 
         if (hasGetUserMedia()) {
-            navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: 'environment' } } })
+            const constraints = {
+                video: {
+                    facingMode: { exact: 'environment' }, // Use rear camera
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                }
+            };
+
+            navigator.mediaDevices.getUserMedia(constraints)
                 .then(function(stream) {
                     video.srcObject = stream;
+                    video.setAttribute('playsinline', true); // iOS specific attribute to play inline
+                    video.setAttribute('controls', true); // Show video controls
+                    video.setAttribute('muted', true); // Mute the video to prevent feedback
+                    video.setAttribute('disablePictureInPicture', true); // Disable Picture-in-Picture mode
+                    video.addEventListener('loadedmetadata', function() {
+                        video.play();
+                    });
                 })
                 .catch(function(error) {
                     console.error('Error accessing the camera:', error);
