@@ -50,7 +50,8 @@
     };
 
     // Initialize Firebase
-    const app = firebase.initializeApp(firebaseConfig);
+    firebase.initializeApp(firebaseConfig);
+
     const auth = firebase.auth();
     const storage = firebase.storage();
 
@@ -76,6 +77,7 @@
             navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: 'environment' } } })
                 .then(function(stream) {
                     video.srcObject = stream;
+                    video.play();
                 })
                 .catch(function(error) {
                     console.error('Error accessing the camera:', error);
